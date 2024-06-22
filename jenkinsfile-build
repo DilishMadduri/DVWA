@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    tools {
+    }
+    stages {
+        stage('SourceStage') {
+            steps {
+                git branch: 'main', credentialsId: 'jenkins_git_creds', url: 'git@github.com:DilishMadduri/DVWA.git'
+            }
+        }
+        stage('Docker') {
+            steps {
+                sh '''    
+                    pwd
+                    chmod +x ./DVMA/scripts/docker.sh
+                   ./DVMA/scripts/docker.sh
+                '''
+            }
+        }
+        stage('publish') {
+            steps {
+                sh '''
+                   pwd
+                   cd DVMA
+                   ls
+                '''
+                s3Upload consoleLogLevel: 'INFO', dontSetBuildResultOnFailure: false, dontWaitForConcurrentBuildCompletion: false, entries: [[bucket: 'hv-s3-artifacts-harc', excludedFile: 'kubernetes', flatten: true, gzipFiles: false, keepForever: false, managedArtifacts: true, noUploadOnFailure: true, selectedRegion: 'ap-south-1', showDirectlyInBrowser: false, sourceFile: '**/*', storageClass: 'STANDARD', uploadFromSlave: false, useServerSideEncryption: false]], pluginFailureResultConstraint: 'FAILURE', profileName: 's3profile', userMetadata: []
+            }
+        }
+    }
+    post {
+         success {
+              echo "build is success"
+         }
+         unstable {
+              echo "Gear up ! The build is unstable. Try fix it"
+         }
+         failure {
+             echo "OMG ! The build failed"
+         }
+     }
+}
